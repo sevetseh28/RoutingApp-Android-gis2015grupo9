@@ -12,6 +12,7 @@
     tools:context="com.example.hernan.examplegis.SearchableActivity"
     android:weightSum="1">
 
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -20,10 +21,15 @@
         android:id="@+id/textView2" />
 
     <ListView
-        android:layout_width="wrap_content"
+        android:layout_width="fill_parent"
         android:layout_height="0dp"
         android:id="@android:id/list"
-        android:layout_weight="1.02" />
+        android:layout_weight="1.02"
+        android:choiceMode="singleChoice"
+        android:listSelector="#90d27e"
+        android:headerDividersEnabled="true"
+        android:footerDividersEnabled="false"
+        android:clickable="true" />
 
     <Button
         android:layout_width="wrap_content"

@@ -1,19 +1,20 @@
 <resources>
 
-    <string name="app_name">GIS2015 grupo 9</string>
+    <string name="app_name">GIS 2015 - Grupo 9</string>
 
     <string name="action_search">Place Search</string>
-    <string name="action_clear">Clear</string>
-    <string name="search_hint">Search address or place</string>
-    <string name="search_title">Search</string>
-    <string name="suggestion_text">Suggestion</string>
+    <string name="action_clear">Limpiar</string>
+    <string name="search_hint">Buscar lugar o dirección</string>
+    <string name="search_title">Buscar</string>
+    <string name="suggestion_text">Sugerencia</string>
 
 
     <!-- Toast messages -->
-    <string name="addressSearchFailed">Address search failed</string>
-    <string name="noResultsFound">No Results found</string>
+    <string name="addressSearchFailed">Búsqueda fallida</string>
+    <string name="noResultsFound">No se encontraron resultados</string>
     <string name="title_activity_searchable">SearchableActivity</string>
+    <string name="selectLocation">Seleccione un lugar o dirección:</string>
 
 
-    <item name="action_settings" type="id">Settings</item>
+    <item name="action_settings" type="id">Configuración</item>
 </resources>

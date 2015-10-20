@@ -1,6 +1,7 @@
 package com.example.hernan.examplegis;
 
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
@@ -44,16 +45,16 @@ public class SearchableActivity extends ListActivity {
         }
     }
 
+
     /**
      * Set up the search parameters and execute the Locator task.
      *
      * @param address
      */
+
     private void executeLocatorTask(String address) {
         // Create Locator parameters from single line address string
         LocatorFindParameters findParams = new LocatorFindParameters(address);
-
-
         // Execute async task to find the address
         new LocatorAsyncTask().execute(findParams);
     }
@@ -61,6 +62,15 @@ public class SearchableActivity extends ListActivity {
 
     private class LocatorAsyncTask extends AsyncTask<LocatorFindParameters, Void, List<LocatorGeocodeResult>> {
         private Exception mException;
+
+        /* Set up dialog message for loading spinner */
+        private ProgressDialog dialog = new ProgressDialog(SearchableActivity.this);
+
+        @Override
+        protected void onPreExecute() {
+            this.dialog.setMessage("Obteniendo ubicaciones...");
+            this.dialog.show();
+        }
 
         public LocatorAsyncTask() {
         }
@@ -116,6 +126,10 @@ public class SearchableActivity extends ListActivity {
                 //LocatorGeocodeResult geocodeResult = result.get(0);
                 // crear alerta
                 //Toast.makeText(SearchableActivity.this, geocodeResult.getAddress(), Toast.LENGTH_LONG).show();
+            }
+
+            if (dialog.isShowing()) {
+                dialog.dismiss();
             }
         }
 

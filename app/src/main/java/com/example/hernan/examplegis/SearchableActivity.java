@@ -24,6 +24,9 @@ import com.esri.core.tasks.geocode.LocatorGeocodeResult;
 import java.util.List;
 
 public class SearchableActivity extends ListActivity {
+
+    public List<LocatorGeocodeResult> locations;
+
     public Context getContext() {
         return this.getContext();
     }
@@ -40,25 +43,6 @@ public class SearchableActivity extends ListActivity {
             executeLocatorTask(query);
         }
     }
-
-    /**
-     * Called from search_layout.xml when user presses Search button
-     *
-     * @param view
-     */
-/*
-    public void onSearchButtonClicked(View view) {
-        // Hide virtual keyboard
-        InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        inputManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
-
-        // obtain address and execute locator task
-        String address = mSearchEditText.getText().toString();
-        executeLocatorTask(address);
-
-    }
-*/
-
 
     /**
      * Set up the search parameters and execute the Locator task.
@@ -83,13 +67,14 @@ public class SearchableActivity extends ListActivity {
 
         @Override
         protected List<LocatorGeocodeResult> doInBackground(
-                LocatorFindParameters... params) {
+                LocatorFindParameters[] params) {
             // Perform routing request on background thread
             mException = null;
             List<LocatorGeocodeResult> results = null;
 
             // Create locator using default online geocoding service and tell it
             // to find the given address
+            // String url = "http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer";
             Locator locator = Locator.createOnlineLocator();
             try {
                 results = locator.find(params[0]);
@@ -116,6 +101,11 @@ public class SearchableActivity extends ListActivity {
                 // Use first result in the list
                 ArrayAdapter<String> itemsAdapter =
                         new ArrayAdapter<String>(SearchableActivity.this, android.R.layout.simple_list_item_1);
+
+
+                // Guardo el resultado en la Actividad para luego pasarla
+                SearchableActivity.this.locations = result;
+
 
                 for (int i=0; i<result.size(); i++ ){
                     LocatorGeocodeResult geocodeResult = result.get(i);

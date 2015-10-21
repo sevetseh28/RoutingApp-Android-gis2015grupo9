@@ -45,6 +45,9 @@ public class MainActivity extends AppCompatActivity {
         SearchableInfo info = searchManager.getSearchableInfo(getComponentName());
         searchView.setSearchableInfo(info);
 
+        searchView.setIconifiedByDefault(false);
+
+
     }
 
 

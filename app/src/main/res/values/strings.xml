@@ -14,6 +14,7 @@
     <string name="noResultsFound">No se encontraron resultados</string>
     <string name="title_activity_searchable">SearchableActivity</string>
     <string name="selectLocation">Seleccione un lugar o dirección:</string>
+    <string name="botonGenerarRuta">Generar ruta</string>
 
 
     <item name="action_settings" type="id">Configuración</item>

@@ -14,7 +14,9 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -27,6 +29,7 @@ import java.util.List;
 public class SearchableActivity extends ListActivity {
 
     public List<LocatorGeocodeResult> locations;
+    public int selectedPosition;
 
     public Context getContext() {
         return this.getContext();
@@ -42,6 +45,28 @@ public class SearchableActivity extends ListActivity {
         String query = intent.getStringExtra(SearchManager.QUERY);
         executeLocatorTask(query);
 //        }
+
+        // OnClick listener for add location button
+        final Button button = (Button) findViewById(R.id.buttonAddLoc);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Perform action on click
+                LocatorGeocodeResult locationChosen = locations.get(SearchableActivity.this.selectedPosition);
+
+                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                intent.setAction(Intent.ACTION_VIEW);
+
+                intent.putExtra("LUGAR_ELEGIDO", locationChosen.getAddress());
+                setResult(RESULT_OK, intent);
+                finish();
+                ////Intent activityChangeIntent = new Intent(PresentActivity.this, NextActivity.class);
+
+                // currentContext.startActivity(activityChangeIntent);
+
+                ////PresentActivity.this.startActivity(activityChangeIntent);
+            }
+        });
+
     }
 
 
@@ -120,8 +145,23 @@ public class SearchableActivity extends ListActivity {
                     LocatorGeocodeResult geocodeResult = result.get(i);
                     itemsAdapter.add(geocodeResult.getAddress());
                 }
-                ListView listView = (ListView) getListView();
-                listView.setAdapter(itemsAdapter);
+                final ListView lv = (ListView) getListView();
+                lv.setAdapter(itemsAdapter);
+
+                lv.setOnItemClickListener(new AdapterView.OnItemClickListener()
+                {
+                    @Override
+                    public void onItemClick(AdapterView<?> adapter, View v, int position,
+                                            long arg3)
+                    {
+                        SearchableActivity.this.selectedPosition = position;
+                        //String value = (String)adapter.getItemAtPosition(position);
+                        // assuming string and if you want to get the value on click of list item
+                        // do what you intend to do on click of listview row
+                    }
+                });
+
+
                 //LocatorGeocodeResult geocodeResult = result.get(0);
                 // crear alerta
                 //Toast.makeText(SearchableActivity.this, geocodeResult.getAddress(), Toast.LENGTH_LONG).show();

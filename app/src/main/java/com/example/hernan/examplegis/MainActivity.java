@@ -46,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
         searchView.setSearchableInfo(info);
 
     }
+
+
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
@@ -62,6 +64,20 @@ public class MainActivity extends AppCompatActivity {
             // add query to the Intent Extras
             searchIntent.putExtra(SearchManager.QUERY, query);
             startActivityForResult(searchIntent, 0);
+        }
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Check which request we're responding to
+        if (requestCode == 0) {
+            // Make sure the request was successful
+            if (resultCode == RESULT_OK) {
+                Toast.makeText(MainActivity.this,
+                        data.getStringExtra("LUGAR_ELEGIDO"),
+                        Toast.LENGTH_LONG).show();
+            }
         }
     }
 

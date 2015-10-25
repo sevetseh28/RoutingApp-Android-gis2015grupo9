@@ -31,9 +31,7 @@ public class SearchableActivity extends ListActivity {
     public List<LocatorGeocodeResult> locations;
     public int selectedPosition;
 
-    public Context getContext() {
-        return this.getContext();
-    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,7 +55,10 @@ public class SearchableActivity extends ListActivity {
                 intent.setAction(Intent.ACTION_VIEW);
 
                 intent.putExtra("LUGAR_ELEGIDO", locationChosen.getAddress());
+                intent.putExtra("posX", locationChosen.getLocation().getX());
+                intent.putExtra("posY", locationChosen.getLocation().getY());
                 setResult(RESULT_OK, intent);
+
                 finish();
                 ////Intent activityChangeIntent = new Intent(PresentActivity.this, NextActivity.class);
 
@@ -145,7 +146,7 @@ public class SearchableActivity extends ListActivity {
                     LocatorGeocodeResult geocodeResult = result.get(i);
                     itemsAdapter.add(geocodeResult.getAddress());
                 }
-                final ListView lv = (ListView) getListView();
+                final ListView lv = getListView();
                 lv.setAdapter(itemsAdapter);
 
                 lv.setOnItemClickListener(new AdapterView.OnItemClickListener()

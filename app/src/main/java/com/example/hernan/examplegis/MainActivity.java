@@ -1,5 +1,6 @@
 package com.example.hernan.examplegis;
 
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.Context;
@@ -22,8 +23,16 @@ import com.esri.android.map.ags.ArcGISFeatureLayer;
 import com.esri.core.geometry.Point;
 import com.esri.core.map.CallbackListener;
 import com.esri.core.map.FeatureEditResult;
+import com.esri.core.map.FeatureSet;
 import com.esri.core.map.Graphic;
 import com.esri.core.symbol.SimpleMarkerSymbol;
+import com.esri.core.tasks.ags.query.Query;
+import com.esri.core.tasks.na.NAFeaturesAsFeature;
+import com.esri.core.tasks.na.Route;
+import com.esri.core.tasks.na.RouteParameters;
+import com.esri.core.tasks.na.RouteResult;
+import com.esri.core.tasks.na.RouteTask;
+import com.esri.core.tasks.na.StopGraphic;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,14 +40,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity {
+import org.apache.commons.lang3.ArrayUtils;
 
+public class MainActivity extends AppCompatActivity {
     private EditText mSearchEditText;
     private static final String TAG = "MainActivity";
 
     private ArrayAdapter<String> listAdapter;
     public List<Point> listaActualdeStops = new ArrayList<Point>();
     public ArrayList<Long> objectIDsPuntosGuardados = new ArrayList<Long>();
+    public Graphic[] puntosGraficosDeRuta;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
                     // create a map of attributes (keys must match fields in the feature layer)
                     // prepare the Graphic to add
                     Map<String, Object> attributes = new HashMap<String, Object>();
-                    attributes.put("description", MainActivity.this.listAdapter.getItem(i));
+                    attributes.put("description", "GIS-Gr-9: "+MainActivity.this.listAdapter.getItem(i));
                     attributes.put("event_type", 5);
                     Graphic g = new Graphic(punto, new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE), attributes);
 
@@ -136,6 +147,98 @@ public class MainActivity extends AppCompatActivity {
                 findViewById(R.id.searchView).clearFocus();
                 findViewById(R.id.searchView).setVisibility(View.GONE);
 
+            }
+        });
+
+        // Cuando hace click en generar ruta debo consultar el servicio de ruteo y guardar
+        // la polilinea en el FeatureService provisto
+        buttonGenerarRuta.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+
+
+                // Voy a usar esta capa para obtener los puntos previamente guardados
+                ArcGISFeatureLayer eventlayer = new ArcGISFeatureLayer(
+                        "http://sampleserver5.arcgisonline.com/ArcGIS/rest/services/LocalGovernment/Events/FeatureServer/0",
+                        ArcGISFeatureLayer.MODE.ONDEMAND);
+
+                // Get the points previously saved
+                Query q = new Query();
+                ArrayList<Long> objids = MainActivity.this.objectIDsPuntosGuardados;
+                q.setObjectIds(ArrayUtils.toPrimitive(objids.toArray(new Long[objids.size()])));
+                eventlayer.queryFeatures(q,
+                        new CallbackListener<FeatureSet>() {
+
+                            @Override
+                            public void onCallback(FeatureSet result) {
+                                // do something with the feature edit result object
+                                MainActivity.this.puntosGraficosDeRuta = result.getGraphics();
+                                // http://route.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World
+                                String routeTaskURL = "http://tasks.arcgisonline.com/ArcGIS/rest/services/NetworkAnalysis/ESRI_Route_NA/NAServer/Route";
+                                try {
+
+                                    RouteTask routeTask = RouteTask.createOnlineRouteTask(routeTaskURL, null);
+
+
+                                    // create routing features class
+                                    NAFeaturesAsFeature naFeatures = new NAFeaturesAsFeature();
+                                    // Create the stop points from point geometry
+                                    Graphic[] puntosGraph = new Graphic[MainActivity.this.objectIDsPuntosGuardados.size()];
+                                    for (int i = 0; i < MainActivity.this.puntosGraficosDeRuta.length; i++) {
+                                        puntosGraph[i] = new StopGraphic(MainActivity.this.puntosGraficosDeRuta[i]);
+                                    }
+                                    // set features on routing feature class
+                                    naFeatures.setFeatures(puntosGraph);
+                                    // set stops on routing feature class
+                                    RouteParameters routeParams = routeTask.retrieveDefaultRouteTaskParameters();
+                                    routeParams.setStops(naFeatures);
+                                    RouteResult resultRuta = routeTask.solve(routeParams);
+                                    // Voy a guardar la ruta generada (polilinea) en el servicio propuesto
+                                    ArcGISFeatureLayer trailsLayer = new ArcGISFeatureLayer(
+                                            "http://sampleserver5.arcgisonline.com/ArcGIS/rest/services/LocalGovernment/Recreation/FeatureServer/1",
+                                            ArcGISFeatureLayer.MODE.ONDEMAND);
+                                    Map<String, Object> attributes = new HashMap<String, Object>();
+                                    attributes.put("notes", "GIS-Gr-9: " + resultRuta.getRoutes().get(0).getRouteName());
+                                    attributes.put("trailtype", 4); // Motorized trailtype
+                                    Graphic rutaRaw = resultRuta.getRoutes().get(0).getRouteGraphic();
+                                    Graphic rutaFinal = new Graphic(rutaRaw.getGeometry(), rutaRaw.getSymbol(), attributes);
+                                    //Graphic g = new Graphic(punto, new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE), attributes);
+
+                                    //adds.add(g);
+                                    Graphic[] addsArray = new Graphic[]{rutaFinal};
+                                    trailsLayer.applyEdits(
+                                            addsArray,
+                                            new Graphic[]{}, // no graphics to update
+                                            new Graphic[]{}, // no graphics to delete
+                                            new CallbackListener<FeatureEditResult[][]>() {
+
+                                                @Override
+                                                public void onCallback(FeatureEditResult[][] result) {
+                                                    // do something with the feature edit result object
+                                                    // I save the IDs of the saved points
+
+                                                }
+
+                                                @Override
+                                                public void onError(Throwable e) {
+                                                    // handle the error
+                                                }
+                                            }
+                                    );
+                                } catch (Exception e) {
+                                    Toast.makeText(MainActivity.this,
+                                            e.getMessage(),
+                                            Toast.LENGTH_LONG).show();
+                                }
+
+
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                // handle the error
+                            }
+                        }
+                );
             }
         });
     }

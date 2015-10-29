@@ -13,6 +13,7 @@ import com.esri.android.map.MapView;
 import com.esri.android.map.ags.ArcGISFeatureLayer;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryEngine;
+import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.map.CallbackListener;
 import com.esri.core.map.FeatureEditResult;
@@ -116,6 +117,9 @@ public class MapaActivity extends AppCompatActivity {
             // Add empty GraphicsLayer
             mMapView.addLayer(gLayer);
 
+            Graphic ruta = MapaActivity.this.ruta;
+            Polyline polilinea =(Polyline) ruta.getGeometry();
+            mMapView.setExtent(ruta.getGeometry());
             pdLoading.dismiss();
         }
     }

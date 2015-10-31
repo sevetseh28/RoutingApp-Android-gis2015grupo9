@@ -1,5 +1,6 @@
 package com.example.hernan.examplegis;
 
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
@@ -8,6 +9,12 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -22,6 +29,9 @@ import android.widget.Toast;
 
 import com.esri.android.map.ags.ArcGISFeatureLayer;
 import com.esri.core.geometry.Point;
+import com.esri.core.io.EsriSecurityException;
+import com.esri.core.io.SelfSignedCertificateHandler;
+import com.esri.core.io.UserCredentials;
 import com.esri.core.map.CallbackListener;
 import com.esri.core.map.FeatureEditResult;
 import com.esri.core.map.FeatureSet;
@@ -35,6 +45,9 @@ import com.esri.core.tasks.na.RouteResult;
 import com.esri.core.tasks.na.RouteTask;
 import com.esri.core.tasks.na.StopGraphic;
 
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,7 +57,8 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.commons.lang3.ArrayUtils;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements NavigationView.OnNavigationItemSelectedListener {
     private final Semaphore available = new Semaphore(1);
 
     private EditText mSearchEditText;
@@ -62,6 +76,23 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
+        });
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.setDrawerListener(toggle);
+        toggle.syncState();
+
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
 
         final Button buttonGenerarRuta = (Button) findViewById(R.id.buttonGenerarRuta);
         buttonGenerarRuta.setEnabled(false);
@@ -109,6 +140,41 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    @Override
+    public void onBackPressed() {
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
+
+     /*   if (id == R.id.nav_camara) {
+            // Handle the camera action
+        } else if (id == R.id.nav_gallery) {
+
+        } else if (id == R.id.nav_slideshow) {
+
+        } else if (id == R.id.nav_manage) {
+
+        } else if (id == R.id.nav_share) {
+
+        } else if (id == R.id.nav_send) {
+
+        }*/
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
 
     private class GuardarPuntosAsyncTask extends AsyncTask<Void, Void, Void> {
         ProgressDialog pdLoading = new ProgressDialog(MainActivity.this);
@@ -270,12 +336,36 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Void... params) {
-            String routeTaskURL = "http://tasks.arcgisonline.com/ArcGIS/rest/services/NetworkAnalysis/ESRI_Route_NA/NAServer/Route";
+          //  String routeTaskURL = "http://tasks.arcgisonline.com/ArcGIS/rest/services/NetworkAnalysis/ESRI_Route_NA/NAServer/Route";
+            String routeTaskURL = "http://route.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World";
+            UserCredentials creds = new UserCredentials();
+            creds.setUserAccount("sevetseh28", "pisgrupo9hernannicolas");
+        //    creds.setUserToken("UnTGJ8KMkgdvRmi5PNjBIOSCF7Tzhe7JJtIkCGvGUFcwcHCx-25cfaC7fabL7z9S-ApfBayV1-Db4YsweVtoLPSAnRC0MDMQcUam9pKtOz6vDZ5K_tOZKwT3bp6xcmep1m0IX9ikOtizdpI540DrcA..", "referer");
+         //   SelfSignedCertificateHandler.setTrustAllSigners(true);
+
+    /*        // Load self-signed certificate
+            KeyStore keyStore = null;
+            try {
+                keyStore = KeyStore.getInstance("BKS");
+            } catch (KeyStoreException e) {
+                e.printStackTrace();
+            }
+            InputStream is = this.getResources().openRawResource(R.raw.xxx);
+            UserCredentials.set
+            keyStore.load(is, "xxx".toCharArray());*/
+    /*        try {
+                UserCredentials.setTrustStore(null);
+            } catch (EsriSecurityException e) {
+                e.printStackTrace();
+            }*/
+
             RouteTask routeTask = null;
             try {
-                routeTask = RouteTask.createOnlineRouteTask(routeTaskURL, null);
+                routeTask = RouteTask.createOnlineRouteTask(routeTaskURL, creds);
+                //routeTask = RouteTask.createOnlineRouteTask(routeTaskURL, null);
             } catch (Exception e) {
                 e.printStackTrace();
+                return null;
             }
 
 
@@ -294,8 +384,12 @@ public class MainActivity extends AppCompatActivity {
             try {
                 routeParams = routeTask.retrieveDefaultRouteTaskParameters();
             } catch (Exception e) {
-                e.printStackTrace();
+                Toast.makeText(MainActivity.this,
+                        e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+                return null;
             }
+
             routeParams.setStops(naFeatures);
             RouteResult resultRuta = null;
             try {
@@ -352,12 +446,13 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(Void result) {
             super.onPostExecute(result);
             // LUEGO DE GENERAR LA RUTA INICIO EL MAPA
-
             pdLoading.dismiss();
-            //findViewById(R.id.buttonGenerarRuta).setEnabled(false);
-            Intent intent = new Intent(MainActivity.this, MapaActivity.class);
-            intent.putExtra("OBJECT_ID_RUTA", MainActivity.this.objectIdRutaGuardada);
-            MainActivity.this.startActivity(intent);
+            if (result != null) {
+                findViewById(R.id.buttonGenerarRuta).setEnabled(false);
+                Intent intent = new Intent(MainActivity.this, MapaActivity.class);
+                intent.putExtra("OBJECT_ID_RUTA", MainActivity.this.objectIdRutaGuardada);
+                MainActivity.this.startActivity(intent);
+            }
         }
     }
 

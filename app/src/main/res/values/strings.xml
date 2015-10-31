@@ -16,6 +16,10 @@
     <string name="selectLocation">Seleccione un lugar o dirección:</string>
     <string name="botonGuardarPuntos">Guardar puntos</string>
 
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
 
     <item name="action_settings" type="id">Configuración</item>
 </resources>

@@ -4,8 +4,11 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
+import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -15,6 +18,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -76,6 +80,7 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -447,12 +452,55 @@ public class MainActivity extends AppCompatActivity
             super.onPostExecute(result);
             // LUEGO DE GENERAR LA RUTA INICIO EL MAPA
             pdLoading.dismiss();
-            if (result != null) {
-                findViewById(R.id.buttonGenerarRuta).setEnabled(false);
-                Intent intent = new Intent(MainActivity.this, MapaActivity.class);
-                intent.putExtra("OBJECT_ID_RUTA", MainActivity.this.objectIdRutaGuardada);
-                MainActivity.this.startActivity(intent);
-            }
+
+
+
+            AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+
+            alert.setTitle("Guardar ruta generada");
+            alert.setMessage("Ingrese el nombre de la ruta si desea guardar la referencia en forma local");
+
+            // Set an EditText view to get user input
+            final EditText input = new EditText(MainActivity.this);
+            alert.setView(input);
+
+            alert.setPositiveButton("Aceptar", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    String value = input.getText().toString();
+
+                    // Voy a guardar el object id en la db sqlite
+                    AppDbHelper mDbHelper = new AppDbHelper(getApplicationContext());
+                    // Gets the data repository in write mode
+                    SQLiteDatabase db = mDbHelper.getWritableDatabase();
+                    // Create a new map of values, where column names are the keys
+                    ContentValues values = new ContentValues();
+                    values.put(RutaContract.RutaEntry.COLUMN_NAME_ENTRY_ID, MainActivity.this.objectIdRutaGuardada);
+                    values.put(RutaContract.RutaEntry.COLUMN_NAME_DESC, value);
+                    // Insert the new row, returning the primary key value of the new row
+                    long newRowId;
+                    newRowId = db.insert(
+                            RutaContract.RutaEntry.TABLE_NAME,
+                            null,
+                            values);
+                    findViewById(R.id.buttonGenerarRuta).setEnabled(false);
+                    Intent intent = new Intent(MainActivity.this, MapaActivity.class);
+                    intent.putExtra("OBJECT_ID_RUTA", MainActivity.this.objectIdRutaGuardada);
+                    MainActivity.this.startActivity(intent);
+                }
+            });
+
+            alert.setNegativeButton("No guardar", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    findViewById(R.id.buttonGenerarRuta).setEnabled(false);
+                    Intent intent = new Intent(MainActivity.this, MapaActivity.class);
+                    intent.putExtra("OBJECT_ID_RUTA", MainActivity.this.objectIdRutaGuardada);
+                    MainActivity.this.startActivity(intent);
+                }
+            });
+
+            alert.show();
+
+
         }
     }
 

@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.util.Pair;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.esri.android.map.GraphicsLayer;
@@ -40,12 +42,13 @@ import java.lang.Math;
 
 public class MapaActivity extends AppCompatActivity {
     private final Semaphore available = new Semaphore(1);
+    private final Semaphore available2 = new Semaphore(1);
     public Graphic rutaGraphic;
     private Polyline rutaPolyline;
     private Point posActual;
     private int nextIndexPointOfPolyline = 1;
 
-    private double velocidadActual = 600; // en metros por segundos
+    private double velocidadActual = 5; // en metros por segundos
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,18 +58,44 @@ public class MapaActivity extends AppCompatActivity {
 
         AsyncTask<Void, Void, Void> MostrarRutaAsyncTask = new MostrarRutaAsyncTask().execute();
 
+        SeekBar seekBar = (SeekBar) findViewById(R.id.seekBar);
+        seekBar.setEnabled(false);
+
+        TextView t = (TextView) findViewById(R.id.textViewSpeed);
+        t.setVisibility(View.INVISIBLE);
+
         // Comportamiento de recorrido
         Button botonIniciarRecorrido = (Button) findViewById(R.id.buttonIniciarRecorrido);
-
-
         botonIniciarRecorrido.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                GraphicsLayer pointLayer = new GraphicsLayer(); // creo la capa de puntos
+                SeekBar seekBar = (SeekBar) findViewById(R.id.seekBar);
+                seekBar.setEnabled(true);
+                TextView t = (TextView) findViewById(R.id.textViewSpeed);
+                t.setVisibility(View.VISIBLE);
+                seekBar.setProgress((int) velocidadActual);
                 MapView mMapView = (MapView) findViewById(R.id.map);
-                mMapView.addLayer(pointLayer);
-                AsyncTask<GraphicsLayer, Void, Void> RecorriendoTask = new RecorriendoTask().execute(pointLayer);
+                AsyncTask<GraphicsLayer, Void, Void> RecorriendoTask = new RecorriendoTask().execute((GraphicsLayer) mMapView.getLayer(2));
             }
         });
+
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                velocidadActual = (float) progress;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
     }
 
     private Pair<Point, Integer> getNextPoint (Point posActual, int nextPointOfPolyline, double distanceChosen) {
@@ -180,54 +209,14 @@ public class MapaActivity extends AppCompatActivity {
             Graphic ruta = MapaActivity.this.rutaGraphic;
             Polyline polilinea =(Polyline) ruta.getGeometry();
             mMapView.setExtent(ruta.getGeometry());
+
+            // Creo la capa de puntos y pongo el punto inicial
+            GraphicsLayer pointLayer = new GraphicsLayer(); // creo la capa de puntos
+            mMapView = (MapView) findViewById(R.id.map);
+            mMapView.addLayer(pointLayer); // id 2
+            Graphic puntoGraph = new Graphic(posActual, getPointSymbol(0));
+            pointLayer.addGraphic(puntoGraph);
             pdLoading.dismiss();
-        }
-    }
-
-
-    private class AumentarVelocidad extends AsyncTask<Void, Void, Void> {
-        ProgressDialog pdLoading = new ProgressDialog(MapaActivity.this);
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            velocidadActual =+ 10;
-            return null;
-        }
-
-        @Override
-        /** The system calls this to perform work in the UI thread and delivers
-         * the result from doInBackground() */
-        protected void onPostExecute(Void result) {
-            super.onPostExecute(result);
-        }
-    }
-
-    private class DisminuirVelocidad extends AsyncTask<Void, Void, Void> {
-        ProgressDialog pdLoading = new ProgressDialog(MapaActivity.this);
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            if (velocidadActual-10 > 0) {
-                velocidadActual =- 10;
-            }
-            return null;
-        }
-
-        @Override
-        /** The system calls this to perform work in the UI thread and delivers
-         * the result from doInBackground() */
-        protected void onPostExecute(Void result) {
-            super.onPostExecute(result);
         }
     }
 
@@ -242,22 +231,23 @@ public class MapaActivity extends AppCompatActivity {
         @Override
         protected Void doInBackground(GraphicsLayer... params) {
             try {
+                velocidadActual = 5; // arranco despacio
                 MapView mMapView = (MapView) findViewById(R.id.map);
                 GraphicsLayer pointsLayer = params[0];
-                Pair<Point, Integer> puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, velocidadActual);
-                // new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE)
-                //Drawable d = getResources().getDrawable(R.drawable.phase1);
-                Graphic puntoGraph = new Graphic(puntoMagico.first, getPointSymbol(velocidadActual));
-                pointsLayer.addGraphic(puntoGraph);
-                Thread.sleep(1 * 1000);
-                while (true) {
+                Pair<Point, Integer> puntoMagico = null;
+                Graphic puntoGraph = null;
+                while (velocidadActual > 0) {
                     puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, velocidadActual);
                     puntoGraph = new Graphic(puntoMagico.first, getPointSymbol(velocidadActual));
                     pointsLayer.updateGraphic(pointsLayer.getGraphicIDs()[0], puntoGraph);
                     MapaActivity.this.posActual = puntoMagico.first;
                     nextIndexPointOfPolyline = puntoMagico.second;
-                    Thread.sleep(1 * 1000); // once every 1 second:
+                    Thread.sleep(1 * 1000); // once every 1 second
                 }
+                puntoGraph = new Graphic(puntoMagico.first, getPointSymbol(velocidadActual));
+                pointsLayer.updateGraphic(pointsLayer.getGraphicIDs()[0], puntoGraph);
+                return null;
+
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -269,6 +259,14 @@ public class MapaActivity extends AppCompatActivity {
          * the result from doInBackground() */
         protected void onPostExecute(Void result) {
             super.onPostExecute(result);
+
+            // Rehabilito los botones
+            SeekBar seekBar = (SeekBar) findViewById(R.id.seekBar);
+            seekBar.setEnabled(false);
+            TextView t = (TextView) findViewById(R.id.textViewSpeed);
+            t.setVisibility(View.INVISIBLE);
+            Button botonIniciarRecorrido = (Button) findViewById(R.id.buttonIniciarRecorrido);
+            botonIniciarRecorrido.setEnabled(true);
         }
     }
 
@@ -279,8 +277,8 @@ public class MapaActivity extends AppCompatActivity {
             SimpleMarkerSymbol s = new SimpleMarkerSymbol(Color.WHITE, 10, SimpleMarkerSymbol.STYLE.CIRCLE);
             s.setOutline(new SimpleLineSymbol(Color.BLACK, 1));
             return s;
-        } else if (velocidad <= 800 ) {
-            int c = Color.HSVToColor(new float[]{((speed - 1) * (0 - maxHue)) / (800 - 1) + maxHue, 1.0f, 1.0f});
+        } else if (velocidad <= 1500 ) {
+            int c = Color.HSVToColor(new float[]{((speed - 1) * (0 - maxHue)) / (1500 - 1) + maxHue, 1.0f, 1.0f});
             SimpleMarkerSymbol s = new SimpleMarkerSymbol(c, 10, SimpleMarkerSymbol.STYLE.CIRCLE);
             s.setOutline(new SimpleLineSymbol(Color.BLACK, 1));
             return s;

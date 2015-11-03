@@ -18,6 +18,21 @@
         mapoptions.center="33.666354, -117.903557"
         android:layout_weight="0.41" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Velocidad"
+        android:id="@+id/textViewSpeed"
+        android:layout_gravity="center_horizontal" />
+
+    <SeekBar
+        android:layout_width="346dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/seekBar"
+        android:max="1500"
+        android:indeterminate="false" />
+
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

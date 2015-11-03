@@ -20,7 +20,7 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <string name="action_settings">Settings</string>
-    <string name="buttonIniciarRecorrido">Iniciar recorrido</string>
+    <string name="buttonIniciarRecorrido">Iniciar marcha</string>
 
     <item name="action_settings" type="id">Configuración</item>
 </resources>

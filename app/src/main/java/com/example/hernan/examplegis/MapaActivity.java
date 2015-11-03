@@ -1,7 +1,9 @@
 package com.example.hernan.examplegis;
 
 import android.app.ProgressDialog;
+//import android.graphics.Color;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -26,8 +28,10 @@ import com.esri.core.geometry.Unit;
 import com.esri.core.map.CallbackListener;
 import com.esri.core.map.FeatureSet;
 import com.esri.core.map.Graphic;
+import com.esri.core.symbol.PictureMarkerSymbol;
 import com.esri.core.symbol.SimpleLineSymbol;
 import com.esri.core.symbol.SimpleMarkerSymbol;
+import com.esri.core.symbol.Symbol;
 import com.esri.core.tasks.ags.query.Query;
 
 import java.util.Map;
@@ -41,7 +45,7 @@ public class MapaActivity extends AppCompatActivity {
     private Point posActual;
     private int nextIndexPointOfPolyline = 1;
 
-    private double velocidadActual = 0; // en metros por segundos
+    private double velocidadActual = 600; // en metros por segundos
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,20 +65,8 @@ public class MapaActivity extends AppCompatActivity {
                 MapView mMapView = (MapView) findViewById(R.id.map);
                 mMapView.addLayer(pointLayer);
                 AsyncTask<GraphicsLayer, Void, Void> RecorriendoTask = new RecorriendoTask().execute(pointLayer);
-
-              /*
-                for(int i = 1; i<= 8; i++) {
-                    Pair<Point, Integer> puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, 1000);
-                    Graphic puntoGraph = new Graphic(puntoMagico.first, new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE));
-                    pointLayer.addGraphic(puntoGraph);
-                    MapaActivity.this.posActual = puntoMagico.first;
-                    nextIndexPointOfPolyline = puntoMagico.second;
-                }
-              */
-               // mMapView.getLayer(2); // Map Layer 2 is point Layer
             }
         });
-        botonIniciarRecorrido.setEnabled(false);
     }
 
     private Pair<Point, Integer> getNextPoint (Point posActual, int nextPointOfPolyline, double distanceChosen) {
@@ -252,13 +244,15 @@ public class MapaActivity extends AppCompatActivity {
             try {
                 MapView mMapView = (MapView) findViewById(R.id.map);
                 GraphicsLayer pointsLayer = params[0];
-                Pair<Point, Integer> puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, 200);
-                Graphic puntoGraph = new Graphic(puntoMagico.first, new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE));
+                Pair<Point, Integer> puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, velocidadActual);
+                // new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE)
+                //Drawable d = getResources().getDrawable(R.drawable.phase1);
+                Graphic puntoGraph = new Graphic(puntoMagico.first, getPointSymbol(velocidadActual));
                 pointsLayer.addGraphic(puntoGraph);
                 Thread.sleep(1 * 1000);
                 while (true) {
-                    puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, 200);
-                    puntoGraph = new Graphic(puntoMagico.first, new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE));
+                    puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, velocidadActual);
+                    puntoGraph = new Graphic(puntoMagico.first, getPointSymbol(velocidadActual));
                     pointsLayer.updateGraphic(pointsLayer.getGraphicIDs()[0], puntoGraph);
                     MapaActivity.this.posActual = puntoMagico.first;
                     nextIndexPointOfPolyline = puntoMagico.second;
@@ -278,4 +272,23 @@ public class MapaActivity extends AppCompatActivity {
         }
     }
 
+    private Symbol getPointSymbol(double velocidad) {
+        float maxHue = 120;
+        float speed = (float) velocidad;
+        if (velocidad == 0) {
+            SimpleMarkerSymbol s = new SimpleMarkerSymbol(Color.WHITE, 10, SimpleMarkerSymbol.STYLE.CIRCLE);
+            s.setOutline(new SimpleLineSymbol(Color.BLACK, 1));
+            return s;
+        } else if (velocidad <= 800 ) {
+            int c = Color.HSVToColor(new float[]{((speed - 1) * (0 - maxHue)) / (800 - 1) + maxHue, 1.0f, 1.0f});
+            SimpleMarkerSymbol s = new SimpleMarkerSymbol(c, 10, SimpleMarkerSymbol.STYLE.CIRCLE);
+            s.setOutline(new SimpleLineSymbol(Color.BLACK, 1));
+            return s;
+        } else {
+            int c = Color.HSVToColor(new float[]{120f, 1.0f, 1.0f});
+            SimpleMarkerSymbol s = new SimpleMarkerSymbol(c, 10, SimpleMarkerSymbol.STYLE.CIRCLE);
+            s.setOutline(new SimpleLineSymbol(Color.BLACK, 1));
+            return s;
+        }
+    }
 }

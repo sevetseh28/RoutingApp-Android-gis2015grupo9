@@ -41,6 +41,8 @@ public class MapaActivity extends AppCompatActivity {
     private Point posActual;
     private int nextIndexPointOfPolyline = 1;
 
+    private double velocidadActual = 0; // en metros por segundos
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,6 +58,11 @@ public class MapaActivity extends AppCompatActivity {
         botonIniciarRecorrido.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 GraphicsLayer pointLayer = new GraphicsLayer(); // creo la capa de puntos
+                MapView mMapView = (MapView) findViewById(R.id.map);
+                mMapView.addLayer(pointLayer);
+                AsyncTask<GraphicsLayer, Void, Void> RecorriendoTask = new RecorriendoTask().execute(pointLayer);
+
+              /*
                 for(int i = 1; i<= 8; i++) {
                     Pair<Point, Integer> puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, 1000);
                     Graphic puntoGraph = new Graphic(puntoMagico.first, new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE));
@@ -63,11 +70,11 @@ public class MapaActivity extends AppCompatActivity {
                     MapaActivity.this.posActual = puntoMagico.first;
                     nextIndexPointOfPolyline = puntoMagico.second;
                 }
-                MapView mMapView = (MapView) findViewById(R.id.map);
-                mMapView.addLayer(pointLayer);
+              */
+               // mMapView.getLayer(2); // Map Layer 2 is point Layer
             }
         });
-
+        botonIniciarRecorrido.setEnabled(false);
     }
 
     private Pair<Point, Integer> getNextPoint (Point posActual, int nextPointOfPolyline, double distanceChosen) {
@@ -111,7 +118,7 @@ public class MapaActivity extends AppCompatActivity {
             super.onPreExecute();
 
             //this method will be running on UI thread
-            pdLoading.setMessage("Mostrando rutaGraphic en mapa...");
+            pdLoading.setMessage("Mostrando ruta en mapa...");
             pdLoading.show();
         }
 
@@ -156,26 +163,6 @@ public class MapaActivity extends AppCompatActivity {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-/*
-            QueryParameters qparams = new QueryParameters();
-            long[] objid = new long[]{ getIntent().getLongExtra("OBJECT_ID_RUTA", 0) };
-            qparams.setReturnM(true);
-            qparams.setObjectIds(objid);
-            QueryTask query = new QueryTask("http://sampleserver5.arcgisonline.com/ArcGIS/rest/services/LocalGovernment/Recreation/FeatureServer/1");
-            FeatureResult hola = null;
-            try {
-                available.acquire();
-                hola =  query.execute(qparams);
-                available.release();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            try {
-                available.acquire();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            int a = 1+1;*/
             return null;
         }
 
@@ -202,6 +189,92 @@ public class MapaActivity extends AppCompatActivity {
             Polyline polilinea =(Polyline) ruta.getGeometry();
             mMapView.setExtent(ruta.getGeometry());
             pdLoading.dismiss();
+        }
+    }
+
+
+    private class AumentarVelocidad extends AsyncTask<Void, Void, Void> {
+        ProgressDialog pdLoading = new ProgressDialog(MapaActivity.this);
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            velocidadActual =+ 10;
+            return null;
+        }
+
+        @Override
+        /** The system calls this to perform work in the UI thread and delivers
+         * the result from doInBackground() */
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+        }
+    }
+
+    private class DisminuirVelocidad extends AsyncTask<Void, Void, Void> {
+        ProgressDialog pdLoading = new ProgressDialog(MapaActivity.this);
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            if (velocidadActual-10 > 0) {
+                velocidadActual =- 10;
+            }
+            return null;
+        }
+
+        @Override
+        /** The system calls this to perform work in the UI thread and delivers
+         * the result from doInBackground() */
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+        }
+    }
+
+    private class RecorriendoTask extends AsyncTask<GraphicsLayer, Void, Void> {
+        ProgressDialog pdLoading = new ProgressDialog(MapaActivity.this);
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected Void doInBackground(GraphicsLayer... params) {
+            try {
+                MapView mMapView = (MapView) findViewById(R.id.map);
+                GraphicsLayer pointsLayer = params[0];
+                Pair<Point, Integer> puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, 200);
+                Graphic puntoGraph = new Graphic(puntoMagico.first, new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE));
+                pointsLayer.addGraphic(puntoGraph);
+                Thread.sleep(1 * 1000);
+                while (true) {
+                    puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, 200);
+                    puntoGraph = new Graphic(puntoMagico.first, new SimpleMarkerSymbol(Color.RED, 10, SimpleMarkerSymbol.STYLE.CIRCLE));
+                    pointsLayer.updateGraphic(pointsLayer.getGraphicIDs()[0], puntoGraph);
+                    MapaActivity.this.posActual = puntoMagico.first;
+                    nextIndexPointOfPolyline = puntoMagico.second;
+                    Thread.sleep(1 * 1000); // once every 1 second:
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        /** The system calls this to perform work in the UI thread and delivers
+         * the result from doInBackground() */
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
         }
     }
 

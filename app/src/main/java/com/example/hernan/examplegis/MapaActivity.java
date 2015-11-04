@@ -395,7 +395,7 @@ public class MapaActivity extends AppCompatActivity {
             SpatialReference sr = SpatialReference.create(102100);
             GraphicsLayer bufferLayer = params[1];
 
-            while (true) {
+            while (velocidadActual > 0) {
                 try {
                     available2.acquire();
                 } catch (InterruptedException e) {
@@ -502,7 +502,7 @@ public class MapaActivity extends AppCompatActivity {
                             }
                         });
 
-                        available2.release();
+                        //available2.release();
                     }
 
                     @Override
@@ -511,7 +511,7 @@ public class MapaActivity extends AppCompatActivity {
                     }
                 });
             }
-           // return null;
+            return null;
         }
 
     }

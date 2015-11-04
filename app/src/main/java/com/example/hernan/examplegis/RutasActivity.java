@@ -24,18 +24,17 @@ public class RutasActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ruta);
 
-
         // Voy a guardar el object id en la db sqlite
         AppDbHelper mDbHelper = new AppDbHelper(getApplicationContext());
         // Gets the data repository in write mode
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
-        final Cursor rutas = db.rawQuery("SELECT * FROM Rutas", null);
+        Cursor rutas = db.rawQuery("SELECT * FROM Rutas", null);
         this.rutas = rutas;
         // Find ListView to populate
         ListView lvItems = (ListView) findViewById(R.id.rutasView);
         // Setup cursor adapter using cursor from last step
-        SimpleCursorAdapter dataAdapter = new SimpleCursorAdapter(
+        final SimpleCursorAdapter dataAdapter = new SimpleCursorAdapter(
                 getApplicationContext(),
                 R.layout.list_rutas,
                 rutas,
@@ -53,6 +52,8 @@ public class RutasActivity extends AppCompatActivity {
                 RutasActivity.this.selectedPosition = position;
                 Button buttonCargarRuta = (Button) findViewById(R.id.buttonCargarRuta);
                 buttonCargarRuta.setEnabled(true);
+                Button buttonBorrarRuta = (Button) findViewById(R.id.buttonBorrarRuta);
+                buttonBorrarRuta.setEnabled(true);
                 //String value = (String)adapter.getItemAtPosition(position);
                 // assuming string and if you want to get the value on click of list item
                 // do what you intend to do on click of listview row
@@ -61,11 +62,14 @@ public class RutasActivity extends AppCompatActivity {
 
         Button buttonCargarRuta = (Button) findViewById(R.id.buttonCargarRuta);
         buttonCargarRuta.setEnabled(false);
+        Button buttonBorrarRuta = (Button) findViewById(R.id.buttonBorrarRuta);
+        buttonBorrarRuta.setEnabled(false);
 
         buttonCargarRuta.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
 
                 // obtain the clicked point from a MouseEvent
+                Cursor rutas = dataAdapter.getCursor();
                 rutas.moveToPosition(selectedPosition);
                 long objectid = (Long.valueOf(rutas.getString(rutas.getColumnIndex("objectid")))).longValue();
 
@@ -74,5 +78,27 @@ public class RutasActivity extends AppCompatActivity {
                 RutasActivity.this.startActivity(intent);
             }
         });
+
+        buttonBorrarRuta.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                AppDbHelper mDbHelper = new AppDbHelper(getApplicationContext());
+                // Gets the data repository in write mode
+                SQLiteDatabase db = mDbHelper.getWritableDatabase();
+                // obtain the clicked point from a MouseEvent
+                Cursor rutas = dataAdapter.getCursor();
+                rutas.moveToPosition(selectedPosition);
+                long objectid = (Long.valueOf(rutas.getString(rutas.getColumnIndex("objectid")))).longValue();
+                db.delete("Rutas", "objectid = " + rutas.getString(rutas.getColumnIndex("objectid")), null);
+                rutas = db.rawQuery("SELECT * FROM Rutas", null);
+                dataAdapter.swapCursor(rutas);
+                if (rutas.getCount() == 0) {
+                    Button buttonCargarRuta = (Button) findViewById(R.id.buttonCargarRuta);
+                    buttonCargarRuta.setEnabled(false);
+                    Button buttonBorrarRuta = (Button) findViewById(R.id.buttonBorrarRuta);
+                    buttonBorrarRuta.setEnabled(false);
+                }
+            }
+        });
+
     }
 }

@@ -9,14 +9,22 @@
     android:orientation="vertical"
     android:weightSum="1">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Población calculada:"
+        android:id="@+id/textPoblacion"
+        android:layout_gravity="left" />
+
     <com.esri.android.map.MapView
         android:id="@+id/map"
-        android:layout_width="match_parent"
-        android:layout_height="389dp"
-        mapoptions.MapType="Topo"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        mapoptions.MapType="Streets"
         mapoptions.ZoomLevel="5"
         mapoptions.center="33.666354, -117.903557"
-        android:layout_weight="0.41" />
+        android:layout_weight="1.10" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -30,7 +38,22 @@
         android:layout_width="346dp"
         android:layout_height="wrap_content"
         android:id="@+id/seekBar"
-        android:max="1500"
+        android:max="4000"
+        android:indeterminate="false" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Buffer"
+        android:id="@+id/textBuffer"
+        android:layout_gravity="center_horizontal" />
+
+    <SeekBar
+        android:layout_width="346dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/seekBarBuffer"
+        android:max="60000"
         android:indeterminate="false" />
 
     <Button
@@ -39,6 +62,6 @@
         android:text="@string/buttonIniciarRecorrido"
         android:id="@+id/buttonIniciarRecorrido"
         android:layout_marginBottom="43dp"
-        android:layout_gravity="center_horizontal" />
+        android:layout_gravity="bottom|center_horizontal" />
 
 </LinearLayout>

@@ -34,7 +34,7 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Add location"
+        android:text="Añadir parada"
         android:id="@+id/buttonAddLoc"
         android:layout_marginBottom="63dp"
         android:layout_gravity="center_horizontal" />

@@ -26,7 +26,10 @@ public class AppDbHelper extends SQLiteOpenHelper {
     // If you change the database schema, you must increment the database version.
     public static final int DATABASE_VERSION = 1;
     public static final String DATABASE_NAME = "GISGrupo9.db";
-
+    public boolean deleteRuta(SQLiteDatabase db, String name)
+    {
+        return db.delete("Rutas", "_ID" + "=" + name, null) > 0;
+    }
     public AppDbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }

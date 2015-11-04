@@ -51,10 +51,15 @@
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
         </activity>
-    <activity android:name=".MapaActivity" >
-    </activity>
-    <activity android:name=".RutasActivity" >
-    </activity>
+        <activity android:name=".MapaActivity" >
+        </activity>
+        <activity android:name=".RutasActivity" >
+        </activity>
+        <activity android:name=".VerPuntoActivity" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

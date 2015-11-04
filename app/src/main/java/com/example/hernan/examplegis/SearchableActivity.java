@@ -44,12 +44,16 @@ public class SearchableActivity extends ListActivity {
         executeLocatorTask(query);
 //        }
 
+        Button buttonVerMapa = (Button) findViewById(R.id.buttonVerEnMapa);
+        buttonVerMapa.setEnabled(false);
+
         // OnClick listener for add location button
-        final Button button = (Button) findViewById(R.id.buttonAddLoc);
-        button.setOnClickListener(new View.OnClickListener() {
+        Button buttonAniadir = (Button) findViewById(R.id.buttonAddLoc);
+        buttonAniadir.setEnabled(false);
+        buttonAniadir.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Perform action on click
-                LocatorGeocodeResult locationChosen = locations.get(SearchableActivity.this.selectedPosition);
+                LocatorGeocodeResult locationChosen = locations.get(selectedPosition);
 
                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                 intent.setAction(Intent.ACTION_VIEW);
@@ -65,6 +69,20 @@ public class SearchableActivity extends ListActivity {
                 // currentContext.startActivity(activityChangeIntent);
 
                 ////PresentActivity.this.startActivity(activityChangeIntent);
+            }
+        });
+
+        buttonVerMapa.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Perform action on click
+                LocatorGeocodeResult locationChosen = locations.get(selectedPosition);
+
+                Intent intent = new Intent(getApplicationContext(), VerPuntoActivity.class);
+                intent.setAction(Intent.ACTION_VIEW);
+                intent.putExtra("posX", locationChosen.getLocation().getX());
+                intent.putExtra("posY", locationChosen.getLocation().getY());
+                //setResult(RESULT_OK, intent);
+                startActivity(intent);
             }
         });
 
@@ -139,10 +157,10 @@ public class SearchableActivity extends ListActivity {
 
 
                 // Guardo el resultado en la Actividad para luego pasarla
-                SearchableActivity.this.locations = result;
+                locations = result;
 
 
-                for (int i=0; i<result.size(); i++ ){
+                for (int i = 0; i < result.size(); i++ ){
                     LocatorGeocodeResult geocodeResult = result.get(i);
                     itemsAdapter.add(geocodeResult.getAddress());
                 }
@@ -155,7 +173,11 @@ public class SearchableActivity extends ListActivity {
                     public void onItemClick(AdapterView<?> adapter, View v, int position,
                                             long arg3)
                     {
-                        SearchableActivity.this.selectedPosition = position;
+                        selectedPosition = position;
+                        Button buttonVerMapa = (Button) findViewById(R.id.buttonVerEnMapa);
+                        buttonVerMapa.setEnabled(true);
+                        Button buttonAniadir = (Button) findViewById(R.id.buttonAddLoc);
+                        buttonAniadir.setEnabled(true);
                         //String value = (String)adapter.getItemAtPosition(position);
                         // assuming string and if you want to get the value on click of list item
                         // do what you intend to do on click of listview row

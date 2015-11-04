@@ -24,6 +24,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -103,7 +104,7 @@ public class MainActivity extends AppCompatActivity
         buttonGenerarRuta.setEnabled(false);
 
 
-        // Esto es para la busqueda, no se muy bien que es lo que hace
+        // Esto es para la busqueda
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         SearchView searchView = (SearchView) findViewById(R.id.searchView);
         SearchableInfo info = searchManager.getSearchableInfo(getComponentName());
@@ -111,6 +112,8 @@ public class MainActivity extends AppCompatActivity
 
         searchView.setIconifiedByDefault(false);
         searchView.clearFocus();
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
 
         // Creo el adaptador para los itemas que representan los stops
         final ArrayAdapter<String> listAdapter =

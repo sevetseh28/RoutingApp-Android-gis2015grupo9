@@ -48,18 +48,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.lang.Math;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.locks.Lock;
 
 public class MapaActivity extends AppCompatActivity {
     private boolean rutaObtenidaConExito = true;
+    private boolean llegueAlFinalDelRecorrido = false;
     private final Semaphore available = new Semaphore(1);
     private final Semaphore available2 = new Semaphore(1);
+    private final Semaphore semaforoTexto = new Semaphore(1);
     public Graphic rutaGraphic;
     private Polyline rutaPolyline;
     private Point posActual;
     private int nextIndexPointOfPolyline = 1;
 
     private double velocidadActual = 5; // en metros por segundos
-    private double radioBufferActual = 6000;
+    private double radioBufferActual = 2500;
 
     private AsyncTask<GraphicsLayer, Void, Void> taskRecorriendo = null;
     private AsyncTask<GraphicsLayer, Void, Void> taskCounties = null;
@@ -81,6 +84,7 @@ public class MapaActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_mapa);
         MapView mMapView = (MapView) findViewById(R.id.map);
         Button botonIniciarRecorrido = (Button) findViewById(R.id.buttonIniciarRecorrido);
@@ -135,10 +139,10 @@ public class MapaActivity extends AppCompatActivity {
 
     }
 
-    private Pair<Point, Integer> getNextPoint (Point posActual, int nextPointOfPolyline, double distanceChosen) {
+    private Pair<Point, Integer> getNextPoint(Point posActual, int nextPointOfPolyline, double distanceChosen) {
         Line segmentRaw = new Line();
         segmentRaw.setStart(posActual);
-        segmentRaw.setEnd(MapaActivity.this.rutaPolyline.getPoint(nextPointOfPolyline));
+        segmentRaw.setEnd(rutaPolyline.getPoint(nextPointOfPolyline));
 
         Polyline segment = new Polyline();
         segment.addSegment(segmentRaw, true);
@@ -150,14 +154,20 @@ public class MapaActivity extends AppCompatActivity {
         Point endPointIntersection = new Point();
         endPointIntersection = intersection.getPoint(1);
 
-        if (GeometryEngine.equals(intersection, segment, sr)) {
+        if (GeometryEngine.equals(intersection, segment, sr)) { // si son iguales es porque el buffer
+            // es mas grande o entró justo en la distancia elegida
             Point startPoint = segment.getPoint(0);
             Point endPoint = segment.getPoint(1);
 
             double distance = GeometryEngine.distance(startPoint, endPoint, sr);
             double remainingDistance = distanceChosen - distance;
-            if (remainingDistance == 0) { // necesito achicar el buffer
+            boolean llegueAlPuntoFinal = GeometryEngine.equals(rutaPolyline.getPoint(nextPointOfPolyline), rutaPolyline.getPoint(rutaPolyline.getPointCount() - 1), sr);
+            if (remainingDistance == 0 && !(llegueAlPuntoFinal)) { // ya llegue al punto justito pero no es el final
                 return new Pair(endPoint, nextPointOfPolyline + 1);
+            }
+            else if (llegueAlPuntoFinal) {
+                // si el proximo punto es el final no importa el buffer, ya llegue
+                return new Pair(endPoint, nextPointOfPolyline);
             }
             else {
                 return getNextPoint(endPoint, nextPointOfPolyline + 1, remainingDistance);
@@ -341,10 +351,16 @@ public class MapaActivity extends AppCompatActivity {
                 while (velocidadActual > 0) {
                     // Actualizo el punto
                     puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, velocidadActual);
+                    posActual = puntoMagico.first;
+                    nextIndexPointOfPolyline = puntoMagico.second;
+                    if (nextIndexPointOfPolyline == rutaPolyline.getPointCount() - 1) { // si legue al final del recorrido
+                        velocidadActual = 0;
+                        llegueAlFinalDelRecorrido = true;
+                        break;
+                    }
                     puntoGraph = new Graphic(puntoMagico.first, getPointSymbol(velocidadActual));
                     pointsLayer.updateGraphic(pointsLayer.getGraphicIDs()[0], puntoGraph);
-                    MapaActivity.this.posActual = puntoMagico.first;
-                    nextIndexPointOfPolyline = puntoMagico.second;
+
 
                     // Actualizo el buffer
                     Polygon p = GeometryEngine.buffer(posActual, sr, radioBufferActual, Unit.create(LinearUnit.Code.METER));
@@ -353,6 +369,9 @@ public class MapaActivity extends AppCompatActivity {
 
 
                     Thread.sleep(1 * 1000); // once every 1 second
+                    // Reseteo el texto de la poblacion
+                    String nuevaPoblacon = Double.toString(recalcularPoblacion());
+                    actualizarTextoEnUI(nuevaPoblacon);
                     segundosPasados += 1;
                     if (segundosPasados % 5 == 0) {
                         available2.release(); // despierto la otra tarea que hace el llamado de los counties
@@ -383,8 +402,14 @@ public class MapaActivity extends AppCompatActivity {
             t2.setEnabled(false);
             SeekBar seekBarBuf = (SeekBar) findViewById(R.id.seekBarBuffer);
             seekBarBuf.setEnabled(false);
-            Button botonIniciarRecorrido = (Button) findViewById(R.id.buttonIniciarRecorrido);
-            botonIniciarRecorrido.setEnabled(true);
+            if (llegueAlFinalDelRecorrido) {
+                Toast.makeText(MapaActivity.this,
+                        "Has llegado al final de tu recorrido",
+                        Toast.LENGTH_LONG).show();
+            } else {
+                Button botonIniciarRecorrido = (Button) findViewById(R.id.buttonIniciarRecorrido);
+                botonIniciarRecorrido.setEnabled(true);
+            }
         }
     }
 
@@ -421,14 +446,8 @@ public class MapaActivity extends AppCompatActivity {
                     if (!necesitoRecalcular) {
                         Polygon uniondeIntersecciones = (Polygon) GeometryEngine.union(intersecciones, sr);
                         if (GeometryEngine.equals(uniondeIntersecciones, buffer.getGeometry(), sr)) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    String nuevaPoblacon = Double.toString(recalcularPoblacion());
-                                    TextView t = (TextView) findViewById(R.id.textPoblacion);
-                                    t.setText("Población calculada: " + nuevaPoblacon);
-                                }
-                            });
+                            //String nuevaPoblacon = Double.toString(recalcularPoblacion());
+                            //actualizarTextoEnUI(nuevaPoblacon);
                             continue;
                         }
                     }
@@ -484,25 +503,8 @@ public class MapaActivity extends AppCompatActivity {
                             }
                         }
 
-                        // Busco las intersecciones porque tengo que recalcular la poblacion si o si en cada movimiento
-                    /*    Polygon[] intersecciones = new Polygon[countiesLocalLayer.getNumberOfGraphics()];
-                        GraphicsLayer bufferLayer = params[1];
-                        Graphic buffer = bufferLayer.getGraphic(bufferLayer.getGraphicIDs()[0]);
-                        for (int i = 0; i < graphicIdsOfLocalLayer.length; i++) {
-                            Geometry county = countiesLocalLayer.getGraphic(graphicIdsOfLocalLayer[i]).getGeometry();
-                            intersecciones[i] = (Polygon) GeometryEngine.intersect(county, buffer.getGeometry(), sr);
-                        }*/
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                String nuevaPoblacon = Double.toString(recalcularPoblacion());
-                                TextView t = (TextView) findViewById(R.id.textPoblacion);
-                                t.setText("Población calculada: " + nuevaPoblacon);
-                            }
-                        });
-
-                        //available2.release();
+                     //   String nuevaPoblacion = Double.toString(recalcularPoblacion());
+                      //  actualizarTextoEnUI(nuevaPoblacion);
                     }
 
                     @Override
@@ -514,6 +516,17 @@ public class MapaActivity extends AppCompatActivity {
             return null;
         }
 
+    }
+
+    private void actualizarTextoEnUI(final String nuevaPoblacion) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                TextView t = (TextView) findViewById(R.id.textPoblacion);
+                t.setText("Población calculada: " + nuevaPoblacion);
+                //semaforoTexto.release();
+            }
+        });
     }
 
 
@@ -551,6 +564,9 @@ public class MapaActivity extends AppCompatActivity {
 
         int[] graphicIdsOfLocalLayer = countiesLayer.getGraphicIDs();
         double resultadoPoblacion = 0;
+        if (graphicIdsOfLocalLayer == null) {
+            return 0;
+        }
         for (int i = 0; i < graphicIdsOfLocalLayer.length; i++) {
             Graphic county = countiesLayer.getGraphic(graphicIdsOfLocalLayer[i]);
             counties[i] = county;

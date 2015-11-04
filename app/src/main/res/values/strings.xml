@@ -23,4 +23,5 @@
     <string name="buttonIniciarRecorrido">Iniciar marcha</string>
 
     <item name="action_settings" type="id">Configuración</item>
+    <string name="title_activity_ver_punto">VerPuntoActivity</string>
 </resources>

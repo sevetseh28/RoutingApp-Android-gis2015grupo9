@@ -125,7 +125,11 @@ public class MapaActivity extends AppCompatActivity {
         seekBarBuf.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                radioBufferActual = (float) progress;
+                if (progress == 0) { // no lo dejo poner buffer 0
+                    radioBufferActual = 100;
+                } else {
+                    radioBufferActual = (float) progress;
+                }
             }
 
             @Override
@@ -564,7 +568,7 @@ public class MapaActivity extends AppCompatActivity {
 
         int[] graphicIdsOfLocalLayer = countiesLayer.getGraphicIDs();
         double resultadoPoblacion = 0;
-        if (graphicIdsOfLocalLayer == null) {
+        if (graphicIdsOfLocalLayer == null || buffer == null) {
             return 0;
         }
         for (int i = 0; i < graphicIdsOfLocalLayer.length; i++) {

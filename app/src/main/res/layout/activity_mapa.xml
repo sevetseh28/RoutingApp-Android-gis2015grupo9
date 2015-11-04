@@ -53,7 +53,7 @@
         android:layout_width="346dp"
         android:layout_height="wrap_content"
         android:id="@+id/seekBarBuffer"
-        android:max="50000"
+        android:max="30000"
         android:indeterminate="false" />
 
     <Button

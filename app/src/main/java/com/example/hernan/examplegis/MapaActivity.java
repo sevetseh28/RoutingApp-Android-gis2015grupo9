@@ -18,6 +18,7 @@ import android.widget.Toast;
 import com.esri.android.map.GraphicsLayer;
 import com.esri.android.map.MapView;
 import com.esri.android.map.ags.ArcGISFeatureLayer;
+import com.esri.android.map.event.OnStatusChangedListener;
 import com.esri.core.geometry.AreaUnit;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryEngine;
@@ -51,6 +52,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.Lock;
 
 public class MapaActivity extends AppCompatActivity {
+    private MapView mapa;
     private boolean rutaObtenidaConExito = true;
     private boolean llegueAlFinalDelRecorrido = false;
     private final Semaphore available = new Semaphore(1);
@@ -86,7 +88,7 @@ public class MapaActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_mapa);
-        MapView mMapView = (MapView) findViewById(R.id.map);
+        mapa = (MapView) findViewById(R.id.map);
         Button botonIniciarRecorrido = (Button) findViewById(R.id.buttonIniciarRecorrido);
         botonIniciarRecorrido.setEnabled(false);
         taskMostrarRuta = new MostrarRutaAsyncTask().execute();
@@ -252,44 +254,39 @@ public class MapaActivity extends AppCompatActivity {
             super.onPostExecute(result);
 
             if (rutaObtenidaConExito) {
-                // Inflate Mapview from XML
-                MapView mMapView = (MapView) findViewById(R.id.map);
+
 
                 // Create GraphicsLayer
                 GraphicsLayer gLayer = new GraphicsLayer();
 
-                gLayer.addGraphic(MapaActivity.this.rutaGraphic);
+                gLayer.addGraphic(rutaGraphic);
                 // Add basemap layer first
                 //mMapView.addLayer(basemap);
                 // Add empty GraphicsLayer
-                mMapView.addLayer(gLayer);
+                mapa.addLayer(gLayer); // capa de la ruta 1
 
-                Graphic ruta = MapaActivity.this.rutaGraphic;
-                Polyline polilinea =(Polyline) ruta.getGeometry();
-                mMapView.setExtent(ruta.getGeometry());
+
 
                 SpatialReference sr = SpatialReference.create(102100);
 
 
                 // Creo la capa de poligonos de counties
                 GraphicsLayer countiesLayer = new GraphicsLayer(); // creo la capa de puntos
-                mMapView = (MapView) findViewById(R.id.map);
-                mMapView.addLayer(countiesLayer); // id 2
+                mapa = (MapView) findViewById(R.id.map);
+                mapa.addLayer(countiesLayer); // id 2
             /*   Graphic bufferPunto = new Graphic(posActual, getPointSymbol(0));
                 bufferPunto.addGraphic(puntoGraph);*/
 
                 // Creo la capa del buffer y pongo el buffer
                 GraphicsLayer bufferLayer = new GraphicsLayer(); // creo la capa de puntos
-                mMapView = (MapView) findViewById(R.id.map);
-                mMapView.addLayer(bufferLayer); // id 3
+                mapa.addLayer(bufferLayer); // id 3
                 Polygon p = GeometryEngine.buffer(posActual, sr, radioBufferActual, Unit.create(LinearUnit.Code.METER));
                 Graphic buffer = new Graphic(p, new SimpleFillSymbol(Color.YELLOW, SimpleFillSymbol.STYLE.SOLID).setAlpha(60));
                 bufferLayer.addGraphic(buffer);
 
                 // Creo la capa de puntos y pongo el punto inicial
                 GraphicsLayer pointLayer = new GraphicsLayer(); // creo la capa de puntos
-                mMapView = (MapView) findViewById(R.id.map);
-                mMapView.addLayer(pointLayer); // id 4
+                mapa.addLayer(pointLayer); // id 4
                 Graphic puntoGraph = new Graphic(posActual, getPointSymbol(0));
                 pointLayer.addGraphic(puntoGraph);
                 pdLoading.dismiss();
@@ -322,6 +319,19 @@ public class MapaActivity extends AppCompatActivity {
                     }
                 });
 
+                // Si el mapa esta inicializado voy a centrarlo en la ruta cargada
+                Graphic ruta = rutaGraphic;
+                Polyline polilinea =(Polyline) ruta.getGeometry();
+                mapa.setExtent(ruta.getGeometry());
+                mapa.setOnStatusChangedListener(new OnStatusChangedListener() {
+                    private static final long serialVersionUID = 1L;
+
+                    public void onStatusChanged(Object source, STATUS status) {
+                        if (OnStatusChangedListener.STATUS.INITIALIZED == status && source == mapa) {
+                            mapa.setExtent(rutaGraphic.getGeometry());
+                        }
+                    }
+                });
 
             } else {
                 pdLoading.dismiss();

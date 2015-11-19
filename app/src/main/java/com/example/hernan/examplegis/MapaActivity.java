@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
 import android.os.AsyncTask;
+import android.os.Trace;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Pair;
@@ -50,13 +51,16 @@ import java.util.concurrent.Semaphore;
 import java.lang.Math;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MapaActivity extends AppCompatActivity {
     private MapView mapa;
     private boolean rutaObtenidaConExito = true;
     private boolean llegueAlFinalDelRecorrido = false;
+    private final Semaphore lockCountiesLayer = new Semaphore(1);
     private final Semaphore available = new Semaphore(1);
     private final Semaphore available2 = new Semaphore(1);
+    private final Semaphore termineDePedirLosCounties = new Semaphore(1);
     private final Semaphore semaforoTexto = new Semaphore(1);
     public Graphic rutaGraphic;
     private Polyline rutaPolyline;
@@ -364,7 +368,9 @@ public class MapaActivity extends AppCompatActivity {
                 int segundosPasados = 0;
                 while (velocidadActual > 0) {
                     // Actualizo el punto
+                    Trace.beginSection("Obteniendo proximo punto");
                     puntoMagico = getNextPoint(posActual, nextIndexPointOfPolyline, velocidadActual);
+                    Trace.endSection();
                     posActual = puntoMagico.first;
                     nextIndexPointOfPolyline = puntoMagico.second;
                     if (nextIndexPointOfPolyline == rutaPolyline.getPointCount() - 1) { // si legue al final del recorrido
@@ -372,10 +378,10 @@ public class MapaActivity extends AppCompatActivity {
                         llegueAlFinalDelRecorrido = true;
                         break;
                     }
+
+                    // Actualizando el punto
                     puntoGraph = new Graphic(puntoMagico.first, getPointSymbol(velocidadActual));
                     pointsLayer.updateGraphic(pointsLayer.getGraphicIDs()[0], puntoGraph);
-
-
                     // Actualizo el buffer
                     Polygon p = GeometryEngine.buffer(posActual, sr, radioBufferActual, Unit.create(LinearUnit.Code.METER));
                     Graphic buffer = new Graphic(p, new SimpleFillSymbol(Color.YELLOW, SimpleFillSymbol.STYLE.SOLID).setAlpha(60));
@@ -384,10 +390,12 @@ public class MapaActivity extends AppCompatActivity {
 
                     Thread.sleep(1 * 1000); // once every 1 second
                     // Reseteo el texto de la poblacion
+                    Trace.beginSection("Recalculando poblacion");
                     String nuevaPoblacon = Double.toString(recalcularPoblacion());
+                    Trace.endSection();
                     actualizarTextoEnUI(nuevaPoblacon);
                     segundosPasados += 1;
-                    if (segundosPasados % 5 == 0) {
+                    if (segundosPasados % 2 == 0) {
                         available2.release(); // despierto la otra tarea que hace el llamado de los counties
                     }
                 }
@@ -444,10 +452,16 @@ public class MapaActivity extends AppCompatActivity {
                 Polygon p = (Polygon) buffer.getGeometry();
 
                 // Voy a verificar si es necesario realizar un pedido
+                Trace.beginSection("Viendo si es necesario realizar el pedido de Counties");
                 GraphicsLayer countiesLocalLayer = params[0];
                 boolean necesitoRecalcular = false;
                 if (countiesLocalLayer.getNumberOfGraphics() != 0) { // si no pasa el primer caso
                     Polygon[] intersecciones = new Polygon[countiesLocalLayer.getNumberOfGraphics()];
+                    try {
+                        lockCountiesLayer.acquire();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     int[] graphicIdsOfLocalLayer = countiesLocalLayer.getGraphicIDs();
                     for (int i = 0; i < graphicIdsOfLocalLayer.length; i++) {
                         Geometry county = countiesLocalLayer.getGraphic(graphicIdsOfLocalLayer[i]).getGeometry();
@@ -457,16 +471,20 @@ public class MapaActivity extends AppCompatActivity {
                             break;
                         }
                     }
+                    lockCountiesLayer.release();
                     if (!necesitoRecalcular) {
                         Polygon uniondeIntersecciones = (Polygon) GeometryEngine.union(intersecciones, sr);
                         if (GeometryEngine.equals(uniondeIntersecciones, buffer.getGeometry(), sr)) {
                             //String nuevaPoblacon = Double.toString(recalcularPoblacion());
                             //actualizarTextoEnUI(nuevaPoblacon);
+                            Trace.endSection();
                             continue;
                         }
                     }
                 }
+                Trace.endSection();
 
+                Trace.beginSection("Realizando llamada de counties");
                 // necesito hacer la llamada
                 final ArcGISFeatureLayer countiesLayerService = new ArcGISFeatureLayer(
                         "http://services.arcgisonline.com/arcgis/rest/services/Demographics/USA_1990-2000_Population_Change/MapServer/3",
@@ -476,6 +494,11 @@ public class MapaActivity extends AppCompatActivity {
                 q.setGeometry(p);
                 q.setSpatialRelationship(SpatialRelationship.INTERSECTS);
 
+                try {
+                    termineDePedirLosCounties.acquire();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 countiesLayerService.queryFeatures(q, new CallbackListener<FeatureSet>() {
                     @Override
                     public void onCallback(FeatureSet result) {
@@ -485,6 +508,11 @@ public class MapaActivity extends AppCompatActivity {
                         // esto que se va a hacer es para que no se remuevan y añadan los counties que ya estan
                         boolean encontreigual = false;
                         boolean sondistintos = true;
+                        try {
+                            lockCountiesLayer.acquire();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                         int[] graphicIdsOfLocalLayer = countiesLocalLayer.getGraphicIDs();
                         if (countiesLocalLayer.getNumberOfGraphics() == result.getGraphics().length) { // si se cumple debo comparar
                             sondistintos = false;
@@ -516,7 +544,8 @@ public class MapaActivity extends AppCompatActivity {
                                 countiesLocalLayer.addGraphic(county);
                             }
                         }
-
+                        lockCountiesLayer.release();
+                        termineDePedirLosCounties.release();
                      //   String nuevaPoblacion = Double.toString(recalcularPoblacion());
                       //  actualizarTextoEnUI(nuevaPoblacion);
                     }
@@ -526,6 +555,13 @@ public class MapaActivity extends AppCompatActivity {
                         // handle the error
                     }
                 });
+                try {
+                    termineDePedirLosCounties.acquire();
+                    Trace.endSection();
+                    termineDePedirLosCounties.release();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
             return null;
         }
@@ -572,6 +608,12 @@ public class MapaActivity extends AppCompatActivity {
 
         Graphic buffer = bufferLayer.getGraphic(bufferLayer.getGraphicIDs()[0]);
 
+        try {
+            lockCountiesLayer.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         Polygon[] intersecciones = new Polygon[countiesLayer.getNumberOfGraphics()];
         Graphic[] counties = new Graphic[countiesLayer.getNumberOfGraphics()];
         Double[] porcentajedelCountyEnElBuffer = new Double[countiesLayer.getNumberOfGraphics()]; //  aca guardo que porcentaje del county se encuentra en el buffer
@@ -579,6 +621,7 @@ public class MapaActivity extends AppCompatActivity {
         int[] graphicIdsOfLocalLayer = countiesLayer.getGraphicIDs();
         double resultadoPoblacion = 0;
         if (graphicIdsOfLocalLayer == null || buffer == null) {
+            lockCountiesLayer.release();
             return 0;
         }
         for (int i = 0; i < graphicIdsOfLocalLayer.length; i++) {
@@ -590,6 +633,7 @@ public class MapaActivity extends AppCompatActivity {
             porcentajedelCountyEnElBuffer[i] = new Double(superficieDeInterseccion / superficieDeCounty); // numero entre 0 y 1
             resultadoPoblacion += Math.floor(((Integer) county.getAttributeValue("Poblacion")).doubleValue() * porcentajedelCountyEnElBuffer[i]);
         }
+        lockCountiesLayer.release();
         return resultadoPoblacion;
     }
 }
